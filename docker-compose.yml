@@ -1,0 +1,67 @@
+services:
+  counsellingdb:
+    image: postgres:15-alpine
+    container_name: counselling-postgres-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - 5432:5432
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - counselling-net
+    # Using healthcheck to verify if db is running successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    container_name: counselling-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_USER}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASS}
+    ports:
+      - 5050:80
+    depends_on:
+      counsellingdb:
+        condition: service_healthy
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin/
+    networks:
+      - counselling-net
+
+  backend:
+    build: .
+    restart: always
+    depends_on:
+      counsellingdb:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@counsellingdb:5432/${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    networks:
+      - counselling-net
+
+volumes:
+  pg-data: {}
+  pgadmin-data: {}
+
+networks:
+  counselling-net:
+
+
+# this effectively runs -> 
+# docker run --name counsellingdb -e POSTGRES_PASSWORD=**** -e POSTGRES_USER=**** 
+#             -p 5432:5432 -v migrationsdata:/var/lib/postgresql/data -d postgres
+# use -> docker compose --env-file .env up -d <- to run this file
