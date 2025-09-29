@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from . import models, services
-from users.routes import router as user_router
-from school.routes import router as school_router
+from app import models, services
+from app.users.routes import app as user_router
+from app.school.routes import app as school_router
 
 # create tables
 models.Base.metadata.create_all(bind=services.engine)

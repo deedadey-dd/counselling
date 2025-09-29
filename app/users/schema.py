@@ -19,40 +19,45 @@ class UserStatus(str, Enum):
     COMPLETED = "completed"
 
 
-class UserCreate(BaseModel): # input schema
-    username: str = Field(max_length=30)
+class UserBase(BaseModel): # input schema
+    username: str = Field(max_length=30, min_length=4)
     firstname: str = Field(max_length=50)
     othernames: Optional[str] = None
     lastname: str = Field(max_length=50)
     email: EmailStr = Field(max_length=100)
-    password: str
-    partner_id: Optional[int] # FK - this will be filled later
-    session_id: int = 0 # FK - This is defualt value is 0
-    class_id: int = 0 # FK - to the Class Table
-    role: UserRole = "counsellee"
-    counselling_status: UserStatus = "not started"
+
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=6)
+
+    """ 
+    # commenting these out because they are not needed in the initial user creation
+    # probably upon first login, a user may be directed to fill these details like partner_id
+    # the user may select class they belong to however that must be approved by a facilitator, counsellor or admin
+    """
+
+    # partner_id: Optional[int] # FK - this will be filled later
+    # session_id: int = 0 # FK - This is defualt value is 0
+    # class_id: int = 0 # FK - to the Class Table
+
+
+class UserOut(UserBase): # output schema
+    id: int
+    partner_id: Optional[int] = None # FK - this will be filled later
+    session_id: Optional[int] = None # FK - This is defualt value is 0
+    class_id: Optional[int] = None # FK - to the Class Table
+    counselling_status: UserStatus = UserStatus.NOT_STARTED
+    role: UserRole = UserRole.COUNSELLEE
     last_submitted_at: datetime = Field(default_factory=datetime.now)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-
-
-class UserOut(BaseModel): # output schema
-    id: int
-    username: str = Field(max_length=30)
-    firstname: str = Field(max_length=50)
-    othernames: Optional[str] = None
-    lastname: str = Field(max_length=50)
-    email: EmailStr = Field(max_length=100)
-    password: str
-    partner_id: Optional[int] # FK - this will be filled later
-    session_id: int = 0 # FK - This is defualt value is 0
-    class_id: int # FK - to the Class Table
-    role: UserRole
-    counselling_status: UserStatus
     last_submitted_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
-        orm_mode = True # this allows returning SQLAlchemy objects
+        from_attributes = True # this allows returning SQLAlchemy objects
 
 
-
+class UserLogin(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: str = Field(min_length=6)
